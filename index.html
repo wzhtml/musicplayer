@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Music Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -60,7 +61,18 @@
                 transform: translate(-50%, -50%);
             }
             .playlist-icon::before {
-                font-size: 1.5rem; /* 专门为播放列表中的图标设置大小 */
+                font-size: 1.5rem;
+            }
+            @media (max-width: 768px) {
+                .mobile-flex-col {
+                    flex-direction: column;
+                }
+                .mobile-mt-4 {
+                    margin-top: 1rem;
+                }
+                .mobile-w-full {
+                    width: 100%;
+                }
             }
         }
     </style>
@@ -68,19 +80,20 @@
 <body class="bg-gradient-to-br from-dark to-gray-800 min-h-screen font-inter text-light">
     <main class="container mx-auto px-4 py-8">
         <div class="w-full max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Music Player</h1>
-                <label for="music-file-input" class="btn-primary text-sm px-4 py-2 cursor-pointer">
+            <div class="flex justify-between items-center mb-6 mobile-flex-col mobile-items-start">
+                <h1 class="text-2xl font-bold mb-4 mobile:mb-2">Music Player</h1>
+                <label for="music-file-input" class="btn-primary text-sm px-4 py-2 cursor-pointer mobile-w-full mobile-text-center">
                     <i class="fa fa-plus mr-2"></i>Add Music
                 </label>
-                <input type="file" id="music-file-input" accept="audio/*" class="hidden" multiple>
+                <input type="file" id="music-file-input" 
+                       accept="audio/mp3, audio/mpeg, audio/aac, audio/wav, audio/*" 
+                       class="hidden" multiple>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-                <!-- 左侧：专辑封面 + 进度条 + 控制按钮 -->
                 <div class="lg:col-span-2 space-y-8 lg:pt-8">
                     <div class="flex flex-col items-center">
-                        <div class="w-64 h-64 rounded-full overflow-hidden border-8 border-white/10 shadow-lg mb-6">
+                        <div class="w-64 h-64 rounded-full overflow-hidden border-8 border-white/10 shadow-lg mb-6 mobile-w-48 mobile-h-48">
                             <div id="album-cover-container" class="w-full h-full music-icon">
                                 <img id="album-cover" src="" alt="Album Cover" class="w-full h-full object-cover hidden">
                             </div>
@@ -114,8 +127,7 @@
                     </div>
                 </div>
 
-                <!-- 右侧：播放列表 -->
-                <div class="lg:col-span-1 mt-8">
+                <div class="lg:col-span-1 mt-8 mobile-mt-4">
                     <h3 class="text-lg font-semibold mb-4 pb-2 border-b border-white/10">Your Playlist</h3>
                     <div id="playlist" class="space-y-2 max-h-60 overflow-y-auto pr-2">
                         <div class="text-center text-gray-400 py-6">
@@ -149,6 +161,9 @@
             let playlistSongs = [];
             let currentSongIndex = 0;
             
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
             playBtn.addEventListener('click', togglePlayPause);
             audio.addEventListener('timeupdate', updateProgress);
             progressContainer.addEventListener('click', setProgress);
@@ -156,6 +171,13 @@
             prevBtn.addEventListener('click', playPrevSong);
             nextBtn.addEventListener('click', playNextSong);
             musicFileInput.addEventListener('change', handleFileSelection);
+            
+            musicFileInput.addEventListener('error', (e) => {
+                console.error('File input error:', e);
+                if(isIOS) {
+                    alert('Please select your music files from the Files app, then use the share button to select this app');
+                }
+            });
             
             audio.addEventListener('loadedmetadata', () => {
                 totalTimeEl.textContent = formatTime(audio.duration);
@@ -169,8 +191,11 @@
             
             function togglePlayPause() {
                 if (audio.paused) {
-                    audio.play();
-                    playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
+                    audio.play().then(() => {
+                        playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
+                    }).catch(error => {
+                        alert('Playback failed: ' + error.message);
+                    });
                 } else {
                     audio.pause();
                     playBtn.innerHTML = '<i class="fa fa-play text-xl ml-1"></i>';
@@ -199,6 +224,8 @@
                 
                 currentSongIndex = index;
                 const song = playlistSongs[currentSongIndex];
+                
+                if(audio.src) URL.revokeObjectURL(audio.src);
                 audio.src = URL.createObjectURL(song.file);
                 
                 const fileName = song.file.name;
@@ -212,7 +239,7 @@
                 audio.play().then(() => {
                     playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
                 }).catch(error => {
-                    alert('无法播放该音频文件');
+                    alert('Cannot play this audio file');
                 });
             }
             
