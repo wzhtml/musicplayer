@@ -1,18 +1,21 @@
 {
   "name": "Music Player",
   "short_name": "Music Player",
-  "description": "Music Player",
+  "description": "Music Player for iOS 12",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#1F2937",
-  "theme_color": "#165DFF",
+  "theme_color": "#1F2937",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "musicplayer-180x180.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "apple-mobile-web-app-capable": "yes",
+  "apple-mobile-web-app-status-bar-style": "black",
+  "apple-mobile-web-app-title": "Music Player"
 }
-    

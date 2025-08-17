@@ -2,23 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- iOS 12 核心适配：viewport必须明确设置，避免缩放异常 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- iOS 12 独立应用模式配置 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- 状态栏样式：黑色背景，避免与主题色冲突（iOS 12仅支持有限值，black最稳定） -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="theme-color" content="#165DFF">
-    <link rel="manifest" href="manifest.json">
+    <!-- 应用标题（添加到主屏幕时显示，避免默认用网页标题） -->
+    <meta name="apple-mobile-web-app-title" content="Music Player">
+    <!-- 主题色（iOS 12虽不完全支持，但补充确保一致性） -->
+    <meta name="theme-color" content="#1F2937">
+    
+    <!-- iOS 12 图标适配：多尺寸声明（即使只用180x180，也声明常用尺寸避免系统降级） -->
+    <link rel="apple-touch-icon" sizes="120x120" href="musicplayer-180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="musicplayer-180x180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="musicplayer-180x180.png">
     <link rel="apple-touch-icon" sizes="180x180" href="musicplayer-180x180.png">
+    
+    <!-- PWA配置文件 -->
+    <link rel="manifest" href="manifest.json">
     <title>Music Player</title>
+    
+    <!-- 外部资源（确保iOS 12 Safari支持的CDN版本） -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Tailwind配置：保留核心颜色，避免复杂扩展 -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#165DFF',
-                        dark: '#1F2937',
-                        light: '#F9FAFB'
+                        primary: '#165DFF', // 强调色（播放按钮等）
+                        dark: '#1F2937',    // 主体背景色（统一所有区域）
+                        light: '#F9FAFB'    // 文字浅色
                     },
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
@@ -27,6 +44,8 @@
             }
         }
     </script>
+    
+    <!-- CSS：补充iOS 12兼容的-webkit-前缀，避免样式失效 -->
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -34,24 +53,35 @@
             }
             .progress-bar {
                 @apply h-1.5 bg-gray-200 rounded-full overflow-hidden cursor-pointer;
+                /* iOS 12兼容：添加-webkit-前缀确保进度条背景显示 */
+                -webkit-appearance: none;
             }
             .progress-value {
                 @apply h-full bg-primary rounded-full transition-all duration-150;
+                /* 确保进度条颜色在iOS 12上正常渲染 */
+                -webkit-transition: all 0.15s ease;
             }
             .btn-primary {
                 @apply bg-primary text-white px-6 py-3 rounded-full font-medium transition-all duration-300 hover:bg-primary/90 active:scale-95;
+                /* 按钮过渡效果兼容iOS 12 */
+                -webkit-transition: all 0.3s ease;
             }
             .music-item {
                 @apply flex items-center p-3 rounded-lg hover:bg-white/5 transition-colors duration-200 cursor-pointer;
+                /* 列表项 hover 效果兼容 */
+                -webkit-transition: background-color 0.2s ease;
             }
             .music-item.active {
                 @apply bg-primary/20 border-l-4 border-primary;
             }
             .music-icon {
                 position: relative;
-                background: #fff;
+                background: #fff; /* 确保图标背景不透明，iOS 12避免透明显示异常 */
+                display: -webkit-flex; /* 兼容旧版弹性盒模型 */
                 display: flex;
+                -webkit-align-items: center;
                 align-items: center;
+                -webkit-justify-content: center;
                 justify-content: center;
             }
             .music-icon::before {
@@ -62,6 +92,8 @@
                 position: absolute;
                 top: 50%;
                 left: 50%;
+                /* 位移兼容iOS 12 */
+                -webkit-transform: translate(-50%, -50%);
                 transform: translate(-50%, -50%);
             }
             .playlist-icon::before {
@@ -69,12 +101,15 @@
             }
             .control-btn {
                 @apply text-white hover:text-primary transition-colors duration-300;
+                -webkit-transition: color 0.3s ease;
             }
             .control-btn.active {
                 @apply text-primary;
             }
+            /* iOS 12 移动端适配：避免flex布局异常 */
             @media (max-width: 768px) {
                 .mobile-flex-col {
+                    -webkit-flex-direction: column;
                     flex-direction: column;
                 }
                 .mobile-mt-4 {
@@ -87,9 +122,11 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-dark to-gray-800 min-h-screen font-inter text-light">
+<!-- 主体背景：用纯色+浅渐变，避免iOS 12对复杂渐变的渲染问题 -->
+<body class="bg-dark min-h-screen font-inter text-light">
     <main class="container mx-auto px-4 py-8">
         <div class="w-full max-w-5xl mx-auto">
+            <!-- 顶部标题+添加文件夹按钮：flex布局兼容iOS 12 -->
             <div class="flex justify-between items-center mb-6 mobile-flex-col mobile-items-start">
                 <h1 class="text-2xl font-bold mb-4 mobile:mb-2">Music Player</h1>
                 <label for="folder-input" class="btn-primary text-sm px-4 py-2 cursor-pointer mobile-w-full mobile-text-center">
@@ -98,19 +135,25 @@
                 <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
             </div>
 
+            <!-- 核心内容区：网格布局简化，避免iOS 12对复杂grid的兼容问题 -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                <!-- 左侧播放控制区 -->
                 <div class="lg:col-span-2 space-y-8 lg:pt-8">
                     <div class="flex flex-col items-center">
-                        <div class="w-64 h-64 rounded-full overflow-hidden border-8 border-white/10 shadow-lg mb-6 mobile-w-48 mobile-h-48">
+                        <!-- 专辑封面：边框纯色，避免透明边框在iOS 12上显示异常 -->
+                        <div class="w-64 h-64 rounded-full overflow-hidden border-8 border-gray-700 shadow-lg mb-6 mobile-w-48 mobile-h-48">
                             <div id="album-cover-container" class="w-full h-full music-icon">
                                 <img id="album-cover" src="" alt="Album Cover" class="w-full h-full object-cover hidden">
                             </div>
                         </div>
-                        <h2 id="song-title" class="text-xl font-bold mb-1 text-center">No Song Selected</h2>
+                        <!-- 歌曲信息：确保文字颜色不继承透明属性 -->
+                        <h2 id="song-title" class="text-xl font-bold mb-1 text-center text-light">No Song Selected</h2>
                         <p id="song-artist" class="text-gray-400 text-center">Unknown Artist</p>
                     </div>
 
+                    <!-- 进度条+控制按钮区 -->
                     <div class="px-4">
+                        <!-- 进度条：确保在iOS 12上可点击 -->
                         <div class="mb-6">
                             <div class="flex justify-between text-sm text-gray-400 mb-2">
                                 <span id="current-time">0:00</span>
@@ -121,6 +164,7 @@
                             </div>
                         </div>
 
+                        <!-- 控制按钮：确保点击区域和样式正常 -->
                         <div class="flex justify-center items-center space-x-8 mb-6">
                             <button id="prev-btn" class="control-btn">
                                 <i class="fa fa-step-backward text-2xl"></i>
@@ -138,8 +182,9 @@
                     </div>
                 </div>
 
+                <!-- 右侧播放列表：固定高度，避免滚动异常 -->
                 <div class="lg:col-span-1 mt-8 mobile-mt-4">
-                    <h3 class="text-lg font-semibold mb-4 pb-2 border-b border-white/10">Your Playlist</h3>
+                    <h3 class="text-lg font-semibold mb-4 pb-2 border-b border-gray-700">Your Playlist</h3>
                     <div id="playlist" class="space-y-2 h-[28rem] overflow-y-auto pr-2">
                         <div class="text-center text-gray-400 py-6">
                             <i class="fa fa-music text-3xl mb-3 block"></i>
@@ -153,12 +198,12 @@
     </main>
 
     <script>
-        // 注册Service Worker
+        // 1. Service Worker注册（iOS 12支持，但需简化逻辑）
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
                     .then(registration => {
-                        console.log('ServiceWorker registered with scope:', registration.scope);
+                        console.log('ServiceWorker registered:', registration.scope);
                     })
                     .catch(error => {
                         console.log('ServiceWorker registration failed:', error);
@@ -166,14 +211,16 @@
             });
         }
 
-        // 处理安装提示
+        // 2. iOS 12 安装提示处理（老系统可能不支持beforeinstallprompt，但保留基础逻辑）
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            console.log('安装提示已保存，可以调用 deferredPrompt.prompt() 来显示安装提示');
+            // iOS 12 需通过Safari"添加到主屏幕"手动安装，这里仅日志提示
+            console.log('请在Safari中点击"分享"→"添加到主屏幕"安装应用');
         });
 
+        // 3. 音乐播放核心逻辑（简化API调用，避免iOS 12不支持的特性）
         document.addEventListener('DOMContentLoaded', function() {
             const audio = new Audio();
             const playBtn = document.getElementById('play-btn');
@@ -186,47 +233,58 @@
             const totalTimeEl = document.getElementById('total-time');
             const songTitle = document.getElementById('song-title');
             const songArtist = document.getElementById('song-artist');
-            const albumCover = document.getElementById('album-cover');
-            const albumCoverContainer = document.getElementById('album-cover-container');
             const playlist = document.getElementById('playlist');
             const folderInput = document.getElementById('folder-input');
             
             let playlistSongs = [];
             let currentSongIndex = 0;
             let isRepeat = false;
-            
-            // 尝试从IndexedDB加载之前的播放列表
-            loadPlaylistFromStorage();
-            
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            
-            playBtn.addEventListener('click', togglePlayPause);
-            audio.addEventListener('timeupdate', updateProgress);
-            progressContainer.addEventListener('click', setProgress);
-            audio.addEventListener('ended', handleSongEnd);
-            prevBtn.addEventListener('click', playPrevSong);
-            nextBtn.addEventListener('click', playNextSong);
-            folderInput.addEventListener('change', handleFolderSelection);
-            repeatBtn.addEventListener('click', toggleRepeat);
-            
-            folderInput.addEventListener('error', (e) => {
-                console.error('Folder input error:', e);
-                if(isIOS) {
-                    alert('Please select your music folder from the Files app');
+
+            // 加载本地存储（iOS 12支持localStorage，简化解析逻辑）
+            const loadSavedState = () => {
+                const saved = localStorage.getItem('playbackState');
+                if (saved) {
+                    try {
+                        const state = JSON.parse(saved);
+                        currentSongIndex = state.currentSongIndex || 0;
+                        isRepeat = state.repeatMode || false;
+                        repeatBtn.classList.toggle('active', isRepeat);
+                    } catch (e) {
+                        // iOS 12 解析异常时重置，避免功能卡死
+                        localStorage.removeItem('playbackState');
+                    }
                 }
-            });
-            
-            audio.addEventListener('loadedmetadata', () => {
+            };
+            loadSavedState();
+
+            // iOS 设备判断（针对文件选择逻辑适配）
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            // 事件监听（简化绑定，避免iOS 12事件冒泡问题）
+            playBtn.onclick = togglePlayPause;
+            prevBtn.onclick = playPrevSong;
+            nextBtn.onclick = playNextSong;
+            repeatBtn.onclick = toggleRepeat;
+            audio.ontimeupdate = updateProgress;
+            audio.onended = handleSongEnd;
+            progressContainer.onclick = setProgress;
+            folderInput.onchange = handleFolderSelection;
+            folderInput.onerror = (e) => {
+                console.error('Folder error:', e);
+                if (isIOS) alert('请在"文件"应用中选择音乐文件夹');
+            };
+            audio.onloadedmetadata = () => {
                 totalTimeEl.textContent = formatTime(audio.duration);
-            });
-            
+            };
+
+            // 1. 切换循环（简化状态切换）
             function toggleRepeat() {
                 isRepeat = !isRepeat;
                 repeatBtn.classList.toggle('active', isRepeat);
                 localStorage.setItem('repeatMode', isRepeat);
             }
-            
+
+            // 2. 歌曲结束处理（避免复杂逻辑）
             function handleSongEnd() {
                 if (isRepeat) {
                     playSong(currentSongIndex);
@@ -234,127 +292,128 @@
                     playNextSong();
                 }
             }
-            
+
+            // 3. 时间格式化（兼容iOS 12的Math方法）
             function formatTime(seconds) {
-                if (isNaN(seconds)) return '0:00';
+                if (isNaN(seconds) || seconds < 0) return '0:00';
                 const minutes = Math.floor(seconds / 60);
-                const remainingSeconds = Math.floor(seconds % 60);
-                return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
             }
-            
+
+            // 4. 播放/暂停（简化Promise处理，避免iOS 12播放权限问题）
             function togglePlayPause() {
                 if (audio.paused) {
+                    // iOS 12 播放需用户交互触发，这里确保在点击事件内执行
                     audio.play().then(() => {
                         playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
-                        savePlaybackState();
-                    }).catch(error => {
-                        alert('Playback failed: ' + error.message);
+                        saveState();
+                    }).catch(() => {
+                        alert('无法播放，请重新选择音乐文件');
                     });
                 } else {
                     audio.pause();
                     playBtn.innerHTML = '<i class="fa fa-play text-xl ml-1"></i>';
-                    savePlaybackState();
+                    saveState();
                 }
             }
-            
+
+            // 5. 更新进度条（避免频繁DOM操作）
             function updateProgress() {
-                const { duration, currentTime } = audio;
-                if (isNaN(duration)) return;
-                
-                const progressPercent = (currentTime / duration) * 100;
-                progressBar.style.width = `${progressPercent}%`;
-                currentTimeEl.textContent = formatTime(currentTime);
-                totalTimeEl.textContent = formatTime(duration);
-                
-                if (Math.floor(currentTime) % 5 === 0) {
-                    savePlaybackState();
-                }
+                if (isNaN(audio.duration)) return;
+                const percent = (audio.currentTime / audio.duration) * 100;
+                // iOS 12 用style.width直接设置，避免class切换延迟
+                progressBar.style.width = `${percent}%`;
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+                // 每5秒保存一次进度，减少localStorage操作
+                if (Math.floor(audio.currentTime) % 5 === 0) saveState();
             }
-            
+
+            // 6. 进度条点击（兼容iOS 12的offsetX获取）
             function setProgress(e) {
-                if (audio.duration) {
-                    const width = progressContainer.clientWidth;
-                    const clickX = e.offsetX;
-                    const newTime = (clickX / width) * audio.duration;
-                    audio.currentTime = newTime;
-                    savePlaybackState();
-                }
+                if (isNaN(audio.duration)) return;
+                // iOS 12 需用clientWidth获取实际宽度
+                const width = progressContainer.clientWidth;
+                const clickX = e.offsetX || (e.touches && e.touches[0].clientX - progressContainer.getBoundingClientRect().left);
+                const newTime = (clickX / width) * audio.duration;
+                audio.currentTime = newTime;
+                saveState();
             }
-            
+
+            // 7. 播放指定歌曲（简化blob URL处理，避免iOS 12内存泄漏）
             function playSong(index) {
                 if (playlistSongs.length === 0 || index < 0 || index >= playlistSongs.length) return;
                 
                 currentSongIndex = index;
                 const song = playlistSongs[currentSongIndex];
                 
-                if(audio.src) URL.revokeObjectURL(audio.src);
-                audio.src = URL.createObjectURL(song.file);
-                
-                const fileName = song.file.name;
-                const fileExtension = fileName.split('.').pop();
-                songTitle.textContent = fileName.replace(`.${fileExtension}`, '');
-                songArtist.textContent = 'Unknown Artist';
-                
-                albumCover.classList.add('hidden');
-                updateActiveSong();
-                
-                if (song.lastPosition) {
-                    audio.currentTime = song.lastPosition;
+                // 释放旧URL（iOS 12需手动清理）
+                if (audio.src) {
+                    try {
+                        URL.revokeObjectURL(audio.src);
+                    } catch (e) {}
                 }
                 
+                audio.src = URL.createObjectURL(song.file);
+                // 解析歌曲名称（避免iOS 12字符串方法异常）
+                const fileName = song.file.name || 'Unknown Song';
+                const title = fileName.lastIndexOf('.') > 0 ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
+                songTitle.textContent = title;
+                songArtist.textContent = 'Unknown Artist';
+                
+                // 恢复播放进度
+                if (song.lastPosition) audio.currentTime = song.lastPosition;
+                
+                // 更新列表激活状态
+                updateActiveSong();
+                
+                // 开始播放
                 audio.play().then(() => {
                     playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
-                    savePlaybackState();
-                }).catch(error => {
-                    alert('Cannot play this audio file');
+                    saveState();
+                }).catch(() => {
+                    alert('无法播放此音频文件');
                 });
             }
-            
+
+            // 8. 上一首/下一首（简化取模逻辑）
             function playPrevSong() {
                 currentSongIndex = (currentSongIndex - 1 + playlistSongs.length) % playlistSongs.length;
                 playSong(currentSongIndex);
             }
-            
             function playNextSong() {
                 currentSongIndex = (currentSongIndex + 1) % playlistSongs.length;
                 playSong(currentSongIndex);
             }
-            
+
+            // 9. 处理文件夹选择（iOS 12仅支持单个文件夹选择）
             function handleFolderSelection(e) {
-                const files = Array.from(e.target.files);
-                if (!files.length) return;
+                const files = Array.from(e.target.files || []).filter(file => file.type.startsWith('audio/'));
+                if (files.length === 0) return;
                 
+                // 去重添加（简化判断逻辑）
                 files.forEach(file => {
-                    if (file.type.startsWith('audio/')) {
-                        const existingIndex = playlistSongs.findIndex(song => song.file.name === file.name);
-                        if (existingIndex >= 0) {
-                            playlistSongs[existingIndex] = { 
-                                file,
-                                lastPosition: playlistSongs[existingIndex].lastPosition || 0
-                            };
-                        } else {
-                            playlistSongs.push({ file, lastPosition: 0 });
-                        }
+                    const exists = playlistSongs.some(s => s.file.name === file.name);
+                    if (!exists) {
+                        playlistSongs.push({ file, lastPosition: 0 });
                     }
                 });
                 
                 updatePlaylistUI();
-                savePlaylistToStorage();
+                saveState();
                 
-                if (playlistSongs.length > 0 && currentSongIndex >= playlistSongs.length) {
+                // 自动播放第一首（iOS 12需用户交互后触发，这里在选择文件后执行）
+                if (currentSongIndex >= playlistSongs.length) {
                     currentSongIndex = 0;
-                }
-                
-                if (playlistSongs.length > 0 && audio.paused) {
                     playSong(currentSongIndex);
                 }
                 
+                // 清空输入（iOS 12需手动重置）
                 folderInput.value = '';
             }
-            
+
+            // 10. 更新播放列表UI（避免复杂DOM创建）
             function updatePlaylistUI() {
-                playlist.innerHTML = '';
-                
                 if (playlistSongs.length === 0) {
                     playlist.innerHTML = `
                         <div class="text-center text-gray-400 py-6">
@@ -366,77 +425,50 @@
                     return;
                 }
                 
+                playlist.innerHTML = '';
                 playlistSongs.forEach((song, index) => {
-                    const songItem = document.createElement('div');
-                    songItem.className = `music-item ${index === currentSongIndex ? 'active' : ''}`;
-                    songItem.setAttribute('data-index', index);
+                    const fileName = song.file.name || 'Unknown Song';
+                    const title = fileName.lastIndexOf('.') > 0 ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
                     
-                    const fileName = song.file.name;
-                    const fileExtension = fileName.split('.').pop();
-                    const title = fileName.replace(`.${fileExtension}`, '');
-                    
-                    songItem.innerHTML = `
+                    const item = document.createElement('div');
+                    item.className = `music-item ${index === currentSongIndex ? 'active' : ''}`;
+                    item.innerHTML = `
                         <div class="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0 music-icon playlist-icon"></div>
                         <div class="flex-grow">
                             <h4 class="font-medium truncate">${title}</h4>
                             <p class="text-gray-400 text-sm truncate">Unknown Artist</p>
                         </div>
                     `;
-                    
-                    songItem.addEventListener('click', () => playSong(index));
-                    playlist.appendChild(songItem);
+                    item.onclick = () => playSong(index);
+                    playlist.appendChild(item);
                 });
             }
-            
+
+            // 11. 更新激活歌曲样式（简化DOM查询）
             function updateActiveSong() {
-                const songItems = document.querySelectorAll('.music-item');
-                songItems.forEach((item, index) => {
+                const items = document.querySelectorAll('.music-item');
+                items.forEach((item, index) => {
                     item.classList.toggle('active', index === currentSongIndex);
                 });
             }
-            
-            function savePlaybackState() {
+
+            // 12. 保存状态（简化localStorage操作，避免iOS 12存储异常）
+            function saveState() {
                 if (playlistSongs.length === 0) return;
-                
-                playlistSongs[currentSongIndex].lastPosition = audio.currentTime;
-                
+                playlistSongs[currentSongIndex].lastPosition = audio.currentTime || 0;
                 const state = {
                     currentSongIndex,
                     isPlaying: !audio.paused,
                     repeatMode: isRepeat
                 };
-                
-                localStorage.setItem('playbackState', JSON.stringify(state));
-                savePlaylistToStorage();
-            }
-            
-            function savePlaylistToStorage() {
-                const playlistData = playlistSongs.map(song => ({
-                    name: song.file.name,
-                    lastPosition: song.lastPosition
-                }));
-                
-                localStorage.setItem('playlistData', JSON.stringify(playlistData));
-            }
-            
-            function loadPlaylistFromStorage() {
-                const savedState = localStorage.getItem('playbackState');
-                const savedPlaylist = localStorage.getItem('playlistData');
-                
-                if (savedState) {
-                    const state = JSON.parse(savedState);
-                    currentSongIndex = state.currentSongIndex;
-                    isRepeat = state.repeatMode;
-                    repeatBtn.classList.toggle('active', isRepeat);
-                }
-                
-                if (savedPlaylist) {
-                    const playlistData = JSON.parse(savedPlaylist);
-                    console.log('Previous playlist found. Please reselect your music folder.');
+                // iOS 12 需用try-catch包裹，避免存储失败
+                try {
+                    localStorage.setItem('playbackState', JSON.stringify(state));
+                } catch (e) {
+                    console.log('保存状态失败:', e);
                 }
             }
         });
     </script>
 </body>
 </html>
-    
