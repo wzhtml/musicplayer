@@ -1,0 +1,18 @@
+{
+  "name": "Music Player",
+  "short_name": "Music Player",
+  "description": "Music Player",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1F2937",
+  "theme_color": "#165DFF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "musicplayer-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
+    

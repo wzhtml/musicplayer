@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#165DFF">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="musicplayer-180x180.png">
     <title>Music Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -63,6 +67,12 @@
             .playlist-icon::before {
                 font-size: 1.5rem;
             }
+            .control-btn {
+                @apply text-white hover:text-primary transition-colors duration-300;
+            }
+            .control-btn.active {
+                @apply text-primary;
+            }
             @media (max-width: 768px) {
                 .mobile-flex-col {
                     flex-direction: column;
@@ -112,14 +122,17 @@
                         </div>
 
                         <div class="flex justify-center items-center space-x-8 mb-6">
-                            <button id="prev-btn" class="text-white hover:text-primary transition-colors duration-300">
+                            <button id="prev-btn" class="control-btn">
                                 <i class="fa fa-step-backward text-2xl"></i>
                             </button>
                             <button id="play-btn" class="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white shadow-lg hover:bg-primary/90 transition-all duration-300 active:scale-95">
                                 <i class="fa fa-play text-xl ml-1"></i>
                             </button>
-                            <button id="next-btn" class="text-white hover:text-primary transition-colors duration-300">
+                            <button id="next-btn" class="control-btn">
                                 <i class="fa fa-step-forward text-2xl"></i>
+                            </button>
+                            <button id="repeat-btn" class="control-btn">
+                                <i class="fa fa-repeat text-xl"></i>
                             </button>
                         </div>
                     </div>
@@ -140,11 +153,33 @@
     </main>
 
     <script>
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // 处理安装提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('安装提示已保存，可以调用 deferredPrompt.prompt() 来显示安装提示');
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const audio = new Audio();
             const playBtn = document.getElementById('play-btn');
             const prevBtn = document.getElementById('prev-btn');
             const nextBtn = document.getElementById('next-btn');
+            const repeatBtn = document.getElementById('repeat-btn');
             const progressBar = document.getElementById('progress-bar');
             const progressContainer = document.getElementById('progress-container');
             const currentTimeEl = document.getElementById('current-time');
@@ -158,6 +193,10 @@
             
             let playlistSongs = [];
             let currentSongIndex = 0;
+            let isRepeat = false;
+            
+            // 尝试从IndexedDB加载之前的播放列表
+            loadPlaylistFromStorage();
             
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -165,10 +204,11 @@
             playBtn.addEventListener('click', togglePlayPause);
             audio.addEventListener('timeupdate', updateProgress);
             progressContainer.addEventListener('click', setProgress);
-            audio.addEventListener('ended', playNextSong);
+            audio.addEventListener('ended', handleSongEnd);
             prevBtn.addEventListener('click', playPrevSong);
             nextBtn.addEventListener('click', playNextSong);
             folderInput.addEventListener('change', handleFolderSelection);
+            repeatBtn.addEventListener('click', toggleRepeat);
             
             folderInput.addEventListener('error', (e) => {
                 console.error('Folder input error:', e);
@@ -181,7 +221,22 @@
                 totalTimeEl.textContent = formatTime(audio.duration);
             });
             
+            function toggleRepeat() {
+                isRepeat = !isRepeat;
+                repeatBtn.classList.toggle('active', isRepeat);
+                localStorage.setItem('repeatMode', isRepeat);
+            }
+            
+            function handleSongEnd() {
+                if (isRepeat) {
+                    playSong(currentSongIndex);
+                } else {
+                    playNextSong();
+                }
+            }
+            
             function formatTime(seconds) {
+                if (isNaN(seconds)) return '0:00';
                 const minutes = Math.floor(seconds / 60);
                 const remainingSeconds = Math.floor(seconds % 60);
                 return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
@@ -191,21 +246,29 @@
                 if (audio.paused) {
                     audio.play().then(() => {
                         playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
+                        savePlaybackState();
                     }).catch(error => {
                         alert('Playback failed: ' + error.message);
                     });
                 } else {
                     audio.pause();
                     playBtn.innerHTML = '<i class="fa fa-play text-xl ml-1"></i>';
+                    savePlaybackState();
                 }
             }
             
             function updateProgress() {
                 const { duration, currentTime } = audio;
+                if (isNaN(duration)) return;
+                
                 const progressPercent = (currentTime / duration) * 100;
                 progressBar.style.width = `${progressPercent}%`;
                 currentTimeEl.textContent = formatTime(currentTime);
-                if (duration) totalTimeEl.textContent = formatTime(duration);
+                totalTimeEl.textContent = formatTime(duration);
+                
+                if (Math.floor(currentTime) % 5 === 0) {
+                    savePlaybackState();
+                }
             }
             
             function setProgress(e) {
@@ -214,6 +277,7 @@
                     const clickX = e.offsetX;
                     const newTime = (clickX / width) * audio.duration;
                     audio.currentTime = newTime;
+                    savePlaybackState();
                 }
             }
             
@@ -234,8 +298,13 @@
                 albumCover.classList.add('hidden');
                 updateActiveSong();
                 
+                if (song.lastPosition) {
+                    audio.currentTime = song.lastPosition;
+                }
+                
                 audio.play().then(() => {
                     playBtn.innerHTML = '<i class="fa fa-pause text-xl"></i>';
+                    savePlaybackState();
                 }).catch(error => {
                     alert('Cannot play this audio file');
                 });
@@ -259,14 +328,18 @@
                     if (file.type.startsWith('audio/')) {
                         const existingIndex = playlistSongs.findIndex(song => song.file.name === file.name);
                         if (existingIndex >= 0) {
-                            playlistSongs[existingIndex] = { file };
+                            playlistSongs[existingIndex] = { 
+                                file,
+                                lastPosition: playlistSongs[existingIndex].lastPosition || 0
+                            };
                         } else {
-                            playlistSongs.push({ file });
+                            playlistSongs.push({ file, lastPosition: 0 });
                         }
                     }
                 });
                 
                 updatePlaylistUI();
+                savePlaylistToStorage();
                 
                 if (playlistSongs.length > 0 && currentSongIndex >= playlistSongs.length) {
                     currentSongIndex = 0;
@@ -321,7 +394,49 @@
                     item.classList.toggle('active', index === currentSongIndex);
                 });
             }
+            
+            function savePlaybackState() {
+                if (playlistSongs.length === 0) return;
+                
+                playlistSongs[currentSongIndex].lastPosition = audio.currentTime;
+                
+                const state = {
+                    currentSongIndex,
+                    isPlaying: !audio.paused,
+                    repeatMode: isRepeat
+                };
+                
+                localStorage.setItem('playbackState', JSON.stringify(state));
+                savePlaylistToStorage();
+            }
+            
+            function savePlaylistToStorage() {
+                const playlistData = playlistSongs.map(song => ({
+                    name: song.file.name,
+                    lastPosition: song.lastPosition
+                }));
+                
+                localStorage.setItem('playlistData', JSON.stringify(playlistData));
+            }
+            
+            function loadPlaylistFromStorage() {
+                const savedState = localStorage.getItem('playbackState');
+                const savedPlaylist = localStorage.getItem('playlistData');
+                
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    currentSongIndex = state.currentSongIndex;
+                    isRepeat = state.repeatMode;
+                    repeatBtn.classList.toggle('active', isRepeat);
+                }
+                
+                if (savedPlaylist) {
+                    const playlistData = JSON.parse(savedPlaylist);
+                    console.log('Previous playlist found. Please reselect your music folder.');
+                }
+            }
         });
     </script>
 </body>
 </html>
+    
